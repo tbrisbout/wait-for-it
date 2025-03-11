@@ -49,6 +49,7 @@ func init() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(estimateCmd)
 	rootCmd.AddCommand(queueInfoCmd)
+	rootCmd.AddCommand(removeCmd)
 }
 
 // loadTasks loads tasks from the JSON file
@@ -349,6 +350,45 @@ var estimateCmd = &cobra.Command{
 		}
 
 		saveTasks()
+	},
+}
+
+var removeCmd = &cobra.Command{
+	Use:     "remove [task_id]",
+	Short:   "Remove a task from the list",
+	Aliases: []string{"cancel", "delete"},
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Invalid task ID: %s\n", args[0])
+			os.Exit(1)
+		}
+
+		taskFound := false
+		taskIndex := -1
+		var taskDescription string
+
+		for i, task := range taskList.Tasks {
+			if task.ID == id {
+				taskFound = true
+				taskIndex = i
+				taskDescription = task.Description
+				break
+			}
+		}
+
+		if !taskFound {
+			fmt.Fprintf(os.Stderr, "Task #%d not found\n", id)
+			os.Exit(1)
+		}
+
+		// Remove the task
+		taskList.Tasks = append(taskList.Tasks[:taskIndex], taskList.Tasks[taskIndex+1:]...)
+		saveTasks()
+
+		fmt.Printf("Removed task #%d: %s\n", id, taskDescription)
+		fmt.Println("Queue positions have been updated")
 	},
 }
 
